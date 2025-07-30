@@ -12,7 +12,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 def label_next_day_return(df, threshold=0.01):
-    """Улучшенный метод для метки следующего дня."""
+    """Improved next-day labeling method."""
     if isinstance(df.columns, pd.MultiIndex):
         price_col = ('Close', df.columns.get_level_values(1)[0])
     else:
@@ -33,7 +33,7 @@ def label_next_day_return(df, threshold=0.01):
     return combined_label
 
 def optimize_hyperparameters(X, y):
-    """Оптимизация гиперпараметров для LightGBM."""
+    """Hyperparameter optimization for LightGBM."""
     # Time series cross-validation
     tscv = TimeSeriesSplit(n_splits=3)
     
@@ -69,7 +69,7 @@ def optimize_hyperparameters(X, y):
     return grid_search.best_estimator_
 
 def create_ensemble(X, y):
-    """Создание ансамбля моделей."""
+    """Create an ensemble of models."""
     # Time series split for validation
     tscv = TimeSeriesSplit(n_splits=3)
     
@@ -105,7 +105,7 @@ def main():
     ap.add_argument('--ensemble', action='store_true', help='Use ensemble model')
     args = ap.parse_args()
 
-    # Загрузка данных
+    # Load data
     price = get_price(args.ticker, args.start, args.end)
     
     # Check if data was successfully downloaded
@@ -117,7 +117,7 @@ def main():
         print(f"Error: Insufficient data for ticker '{args.ticker}'.")
         return
     
-    # Построение признаков
+    # Build features
     feat = build_features(price, [])
     y = label_next_day_return(price)
     

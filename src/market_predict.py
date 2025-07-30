@@ -7,7 +7,7 @@ from .simple_improved import add_simple_features
 from .fundamentals import add_fundamental_features
 
 def get_current_market_data():
-    """Получение текущих рыночных данных."""
+    """Fetch current market data."""
     market_data = {}
     
     # Get SPY (S&P 500) for market context
@@ -31,7 +31,7 @@ def get_current_market_data():
     return market_data
 
 def add_market_features(price_df, market_data):
-    """Добавление простых рыночных признаков."""
+    """Add simple market features."""
     features = pd.DataFrame(index=price_df.index)
     
     # Get stock price column

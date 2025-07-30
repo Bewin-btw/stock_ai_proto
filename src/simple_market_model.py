@@ -13,7 +13,7 @@ from .simple_improved import add_simple_features, create_simple_labels
 from .fundamentals import add_fundamental_features
 
 def get_simple_market_data(start_date, end_date):
-    """Получение простых рыночных данных."""
+    """Fetch basic market data."""
     market_data = {}
     
     # Get SPY (S&P 500) for market context
@@ -37,7 +37,7 @@ def get_simple_market_data(start_date, end_date):
     return market_data
 
 def add_market_features(price_df, market_data):
-    """Добавление простых рыночных признаков."""
+    """Add basic market features."""
     features = pd.DataFrame(index=price_df.index)
     
     # Get stock price column
@@ -90,7 +90,7 @@ def main():
     ap.add_argument('--end', required=True)
     args = ap.parse_args()
 
-    # Загрузка данных
+    # Load data
     price = get_price(args.ticker, args.start, args.end)
     
     if price.empty:
@@ -101,25 +101,25 @@ def main():
         print(f"Error: Insufficient data for ticker '{args.ticker}'.")
         return
     
-    # Получение рыночных данных
+    # Fetch market data
     market_data = get_simple_market_data(args.start, args.end)
     
-    # Построение базовых признаков
+    # Build base features
     feat = build_features(price, [])
     
-    # Добавление простых признаков
+    # Add simple features
     feat = add_simple_features(feat)
     
-    # Добавление фундаментальных признаков
+    # Add fundamental features
     feat = add_fundamental_features(feat, args.ticker)
     
-    # Добавление рыночных признаков
+    # Add market features
     market_features = add_market_features(price, market_data)
     feat = pd.concat([feat, market_features], axis=1)
     
     print(f"✓ Total features: {len(feat.columns)}")
     
-    # Создание меток
+    # Create labels
     y = create_simple_labels(price)
     
     # Remove non-feature columns

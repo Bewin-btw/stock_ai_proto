@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 def create_balanced_labels(df, threshold=0.01):
-    """Создание сбалансированных меток с несколькими стратегиями."""
+    """Create balanced labels using multiple strategies."""
     if isinstance(df.columns, pd.MultiIndex):
         price_col = ('Close', df.columns.get_level_values(1)[0])
     else:
@@ -47,7 +47,7 @@ def create_balanced_labels(df, threshold=0.01):
     return final_label
 
 def create_adaptive_threshold(df, target_positive_ratio=0.3):
-    """Создание адаптивного порога для сбалансированных меток."""
+    """Create an adaptive threshold for balanced labels."""
     if isinstance(df.columns, pd.MultiIndex):
         price_col = ('Close', df.columns.get_level_values(1)[0])
     else:
@@ -69,7 +69,7 @@ def create_adaptive_threshold(df, target_positive_ratio=0.3):
     return labels
 
 def create_multi_horizon_labels(df):
-    """Создание меток для разных временных горизонтов."""
+    """Create labels for multiple time horizons."""
     if isinstance(df.columns, pd.MultiIndex):
         price_col = ('Close', df.columns.get_level_values(1)[0])
     else:

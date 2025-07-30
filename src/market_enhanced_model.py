@@ -22,7 +22,7 @@ class MarketEnhancedPredictor:
         self.feature_importance = {}
     
     def create_models(self):
-        """Создание различных моделей для ансамбля."""
+        """Create different models for the ensemble."""
         # LightGBM models with different focuses
         self.models['lgbm_momentum'] = lgb.LGBMClassifier(
             n_estimators=300, learning_rate=0.05, max_depth=6,
@@ -47,7 +47,7 @@ class MarketEnhancedPredictor:
         ])
     
     def train_models(self, X, y):
-        """Обучение всех моделей."""
+        """Train all models."""
         self.create_models()
         
         # Time series cross-validation
@@ -79,7 +79,7 @@ class MarketEnhancedPredictor:
                 }).sort_values('importance', ascending=False)
     
     def create_ensemble(self, X, y):
-        """Создание ансамбля моделей."""
+        """Create an ensemble of the trained models."""
         self.train_models(X, y)
         
         # Create ensemble with different weights
@@ -108,7 +108,7 @@ class MarketEnhancedPredictor:
         return self.ensemble
     
     def predict_with_confidence(self, X):
-        """Предсказание с уровнем уверенности."""
+        """Predict with a confidence score."""
         predictions = {}
         
         # Individual model predictions
@@ -127,7 +127,7 @@ class MarketEnhancedPredictor:
         return ensemble_proba, confidence, predictions
 
 def build_market_enhanced_features(price_df, start_date, end_date):
-    """Построение признаков с рыночными данными."""
+    """Build features that include market context."""
     print("Building enhanced features with market data...")
     
     # Get market data
@@ -166,7 +166,7 @@ def main():
     ap.add_argument('--end', required=True)
     args = ap.parse_args()
 
-    # Загрузка данных
+    # Load data
     price = get_price(args.ticker, args.start, args.end)
     
     if price.empty:
@@ -177,10 +177,10 @@ def main():
         print(f"Error: Insufficient data for ticker '{args.ticker}'.")
         return
     
-    # Построение расширенных признаков с рыночными данными
+    # Build enhanced features with market data
     feat = build_market_enhanced_features(price, args.start, args.end)
     
-    # Создание меток
+    # Create labels
     y = create_simple_labels(price)
     
     # Remove non-feature columns

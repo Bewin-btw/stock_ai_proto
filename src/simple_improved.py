@@ -12,7 +12,7 @@ from .features import build_features
 from .fundamentals import add_fundamental_features
 
 def create_simple_labels(df, threshold=0.01):
-    """Создание простых, но эффективных меток."""
+    """Create simple yet effective labels."""
     if isinstance(df.columns, pd.MultiIndex):
         price_col = ('Close', df.columns.get_level_values(1)[0])
     else:
@@ -33,7 +33,7 @@ def create_simple_labels(df, threshold=0.01):
     return labels
 
 def add_simple_features(df):
-    """Добавление простых, но эффективных признаков."""
+    """Add simple yet effective features."""
     if isinstance(df.columns, pd.MultiIndex):
         price_col = ('Close', df.columns.get_level_values(1)[0])
     else:
@@ -70,7 +70,7 @@ def main():
     ap.add_argument('--end', required=True)
     args = ap.parse_args()
 
-    # Загрузка данных
+    # Load data
     price = get_price(args.ticker, args.start, args.end)
     
     if price.empty:
@@ -81,16 +81,16 @@ def main():
         print(f"Error: Insufficient data for ticker '{args.ticker}'.")
         return
     
-    # Построение признаков
+    # Build features
     feat = build_features(price, [])
     
-    # Добавление простых признаков
+    # Add simple features
     feat = add_simple_features(feat)
     
-    # Добавление фундаментальных признаков
+    # Add fundamental features
     feat = add_fundamental_features(feat, args.ticker)
     
-    # Создание меток
+    # Create labels
     y = create_simple_labels(price)
     
     # Remove non-feature columns

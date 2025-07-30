@@ -31,3 +31,12 @@ python -m src.transformer_model --ticker AAPL \
 | `risk.py` | simple Kelly sizing & VaR guard |
 
 Fill in API keys in `.env` or as env‑vars before running.
+
+## Parameter tips
+
+- `ticker`: stock symbol, e.g. `AAPL`
+- `start` / `end`: date range for data in `YYYY-MM-DD` format
+- `epochs`: number of training iterations
+- `hidden`: hidden state size for the LSTM
+- `layers`: number of stacked layers in LSTM or Transformer
+- `heads`: attention heads for the Transformer model

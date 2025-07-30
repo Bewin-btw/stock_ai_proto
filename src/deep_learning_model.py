@@ -10,16 +10,25 @@ from .features import build_features
 
 
 class LSTMClassifier(nn.Module):
-    """Simple LSTM-based classifier for stock direction."""
+    """LSTM classifier with dropout for better generalization."""
 
-    def __init__(self, input_dim: int, hidden_dim: int = 64, num_layers: int = 2):
+    def __init__(self, input_dim: int, hidden_dim: int = 128, num_layers: int = 3,
+                 dropout: float = 0.2):
         super().__init__()
-        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
+        self.lstm = nn.LSTM(
+            input_dim,
+            hidden_dim,
+            num_layers,
+            batch_first=True,
+            dropout=dropout if num_layers > 1 else 0.0,
+        )
+        self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_dim, 1)
 
     def forward(self, x):
         output, _ = self.lstm(x)
         out = output[:, -1, :]
+        out = self.dropout(out)
         return self.fc(out)
 
 
@@ -48,8 +57,13 @@ def main():
     ap.add_argument('--ticker', required=True)
     ap.add_argument('--start', required=True)
     ap.add_argument('--end', required=True)
-    ap.add_argument('--epochs', type=int, default=10)
+    ap.add_argument('--epochs', type=int, default=20)
     ap.add_argument('--window', type=int, default=30)
+    ap.add_argument('--hidden', type=int, default=128)
+    ap.add_argument('--layers', type=int, default=3)
+    ap.add_argument('--dropout', type=float, default=0.2)
+    ap.add_argument('--patience', type=int, default=3,
+                    help='Early stopping patience')
     args = ap.parse_args()
 
     price = get_price(args.ticker, args.start, args.end)
@@ -61,23 +75,62 @@ def main():
 
     X_tensor = torch.tensor(X, dtype=torch.float32)
     y_tensor = torch.tensor(y, dtype=torch.float32).unsqueeze(1)
-    loader = DataLoader(TensorDataset(X_tensor, y_tensor), batch_size=32, shuffle=True)
+    split = int(len(X_tensor) * 0.8)
+    train_ds = TensorDataset(X_tensor[:split], y_tensor[:split])
+    val_ds = TensorDataset(X_tensor[split:], y_tensor[split:])
+    train_loader = DataLoader(train_ds, batch_size=32, shuffle=True)
+    val_loader = DataLoader(val_ds, batch_size=32)
 
-    model = LSTMClassifier(input_dim=X.shape[2])
+    model = LSTMClassifier(
+        input_dim=X.shape[2],
+        hidden_dim=args.hidden,
+        num_layers=args.layers,
+        dropout=args.dropout,
+    )
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-    model.train()
+    best_loss = float('inf')
+    patience = args.patience
+    counter = 0
+    best_state = None
     for epoch in range(args.epochs):
+        model.train()
         losses = []
-        for xb, yb in loader:
+        for xb, yb in train_loader:
             optimizer.zero_grad()
             pred = model(xb)
             loss = criterion(pred, yb)
             loss.backward()
             optimizer.step()
             losses.append(loss.item())
-        print(f'Epoch {epoch+1}/{args.epochs} - loss: {np.mean(losses):.4f}')
+        train_loss = np.mean(losses)
+
+        model.eval()
+        val_losses = []
+        with torch.no_grad():
+            for xb, yb in val_loader:
+                pred = model(xb)
+                vloss = criterion(pred, yb)
+                val_losses.append(vloss.item())
+        val_loss = np.mean(val_losses)
+        print(
+            f'Epoch {epoch+1}/{args.epochs} - '
+            f'train_loss: {train_loss:.4f} val_loss: {val_loss:.4f}'
+        )
+
+        if val_loss < best_loss:
+            best_loss = val_loss
+            best_state = model.state_dict()
+            counter = 0
+        else:
+            counter += 1
+            if counter >= patience:
+                print('Early stopping')
+                break
+
+    if best_state is not None:
+        model.load_state_dict(best_state)
 
     model_path = f'{args.ticker}_deep_model.pt'
     torch.save(model.state_dict(), model_path)

@@ -133,7 +133,17 @@ def main():
         model.load_state_dict(best_state)
 
     model_path = f'{args.ticker}_deep_model.pt'
-    torch.save(model.state_dict(), model_path)
+    torch.save(
+        {
+            'model_state_dict': model.state_dict(),
+            'input_dim': X.shape[2],
+            'hidden_dim': args.hidden,
+            'num_layers': args.layers,
+            'dropout': args.dropout,
+            'window': args.window,
+        },
+        model_path,
+    )
     print(f'Model saved as {model_path}')
 
 

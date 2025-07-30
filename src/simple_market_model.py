@@ -2,66 +2,86 @@ import argparse, joblib
 import lightgbm as lgb
 from sklearn.metrics import roc_auc_score, classification_report
 from sklearn.model_selection import TimeSeriesSplit
-from sklearn.preprocessing import StandardScaler
 import pandas as pd, numpy as np
+import yfinance as yf
 import warnings
 warnings.filterwarnings('ignore')
 
 from .ingest import get_price
 from .features import build_features
+from .simple_improved import add_simple_features, create_simple_labels
 from .fundamentals import add_fundamental_features
 
-def create_simple_labels(df, threshold=0.01):
-    """Создание простых, но эффективных меток."""
-    if isinstance(df.columns, pd.MultiIndex):
-        price_col = ('Close', df.columns.get_level_values(1)[0])
-    else:
-        price_col = 'Close'
+def get_simple_market_data(start_date, end_date):
+    """Получение простых рыночных данных."""
+    market_data = {}
     
-    # Simple momentum with adaptive threshold
-    returns = df[price_col].pct_change().shift(-1)
+    # Get SPY (S&P 500) for market context
+    try:
+        spy_data = yf.download('SPY', start=start_date, end=end_date, auto_adjust=True)
+        if not spy_data.empty:
+            market_data['SPY'] = spy_data
+            print("✓ Downloaded SPY (S&P 500)")
+    except:
+        print("✗ Failed to download SPY")
     
-    # Use quantile-based threshold for better balance
-    threshold = returns.quantile(0.6)  # Top 40% of returns
+    # Get QQQ (NASDAQ) for tech context
+    try:
+        qqq_data = yf.download('QQQ', start=start_date, end=end_date, auto_adjust=True)
+        if not qqq_data.empty:
+            market_data['QQQ'] = qqq_data
+            print("✓ Downloaded QQQ (NASDAQ)")
+    except:
+        print("✗ Failed to download QQQ")
     
-    labels = (returns > threshold).astype(int)
-    
-    # Ensure we return a Series
-    if isinstance(labels, pd.DataFrame):
-        labels = labels.iloc[:, 0]
-    
-    return labels
+    return market_data
 
-def add_simple_features(df):
-    """Добавление простых, но эффективных признаков."""
-    if isinstance(df.columns, pd.MultiIndex):
-        price_col = ('Close', df.columns.get_level_values(1)[0])
+def add_market_features(price_df, market_data):
+    """Добавление простых рыночных признаков."""
+    features = pd.DataFrame(index=price_df.index)
+    
+    # Get stock price column
+    if isinstance(price_df.columns, pd.MultiIndex):
+        price_col = ('Close', price_df.columns.get_level_values(1)[0])
     else:
         price_col = 'Close'
     
-    # Price momentum
-    df['price_momentum_1d'] = df[price_col].pct_change(1)
-    df['price_momentum_3d'] = df[price_col].pct_change(3)
-    df['price_momentum_5d'] = df[price_col].pct_change(5)
+    stock_close = price_df[price_col]
     
-    # Volume features
-    if 'Volume' in df.columns:
-        df['volume_ratio'] = df['Volume'] / df['Volume'].rolling(20).mean()
-        df['volume_momentum'] = df['Volume'].pct_change()
+    # SPY features
+    if 'SPY' in market_data:
+        spy_close = market_data['SPY']['Close']
+        features['spy_momentum'] = spy_close.pct_change(5)
+        features['spy_trend'] = (spy_close > spy_close.rolling(50).mean()).astype(int)
+        
+        # Ensure we're working with Series
+        stock_pct = stock_close.pct_change(5)
+        spy_pct = spy_close.pct_change(5)
+        if isinstance(stock_pct, pd.DataFrame):
+            stock_pct = stock_pct.iloc[:, 0]
+        if isinstance(spy_pct, pd.DataFrame):
+            spy_pct = spy_pct.iloc[:, 0]
+        features['vs_spy_performance'] = stock_pct - spy_pct
     
-    # Volatility
-    returns = df[price_col].pct_change()
-    df['volatility_20d'] = returns.rolling(20).std()
+    # QQQ features
+    if 'QQQ' in market_data:
+        qqq_close = market_data['QQQ']['Close']
+        features['qqq_momentum'] = qqq_close.pct_change(5)
+        features['tech_trend'] = (qqq_close > qqq_close.rolling(50).mean()).astype(int)
+        
+        # Ensure we're working with Series
+        stock_pct = stock_close.pct_change(5)
+        qqq_pct = qqq_close.pct_change(5)
+        if isinstance(stock_pct, pd.DataFrame):
+            stock_pct = stock_pct.iloc[:, 0]
+        if isinstance(qqq_pct, pd.DataFrame):
+            qqq_pct = qqq_pct.iloc[:, 0]
+        features['vs_qqq_performance'] = stock_pct - qqq_pct
     
-    # Price position
-    df['price_position'] = (df[price_col] - df[price_col].rolling(20).min()) / \
-                          (df[price_col].rolling(20).max() - df[price_col].rolling(20).min())
+    # Fill missing values
+    features = features.fillna(0)
     
-    # Time features
-    df['day_of_week'] = df.index.dayofweek
-    df['month'] = df.index.month
-    
-    return df
+    return features
 
 def main():
     ap = argparse.ArgumentParser()
@@ -81,7 +101,10 @@ def main():
         print(f"Error: Insufficient data for ticker '{args.ticker}'.")
         return
     
-    # Построение признаков
+    # Получение рыночных данных
+    market_data = get_simple_market_data(args.start, args.end)
+    
+    # Построение базовых признаков
     feat = build_features(price, [])
     
     # Добавление простых признаков
@@ -89,6 +112,12 @@ def main():
     
     # Добавление фундаментальных признаков
     feat = add_fundamental_features(feat, args.ticker)
+    
+    # Добавление рыночных признаков
+    market_features = add_market_features(price, market_data)
+    feat = pd.concat([feat, market_features], axis=1)
+    
+    print(f"✓ Total features: {len(feat.columns)}")
     
     # Создание меток
     y = create_simple_labels(price)
@@ -116,9 +145,6 @@ def main():
     positive_ratio = y.mean()
     print(f"Positive class ratio: {positive_ratio:.3f}")
     
-    if positive_ratio < 0.1 or positive_ratio > 0.9:
-        print(f"Warning: Very imbalanced classes ({positive_ratio:.3f}). Consider adjusting threshold.")
-    
     # Train/test split
     train = X.index < '2024-01-01'
     train_data = X[train]
@@ -130,7 +156,7 @@ def main():
     
     # Train model with class weights
     model = lgb.LGBMClassifier(
-        n_estimators=300,
+        n_estimators=400,
         learning_rate=0.05,
         max_depth=6,
         class_weight='balanced',
@@ -175,11 +201,11 @@ def main():
             'importance': model.feature_importances_
         }).sort_values('importance', ascending=False)
         
-        print("\nTop 10 Most Important Features:")
-        print(feature_importance.head(10))
+        print("\nTop 15 Most Important Features:")
+        print(feature_importance.head(15))
     
     # Save model
-    model_name = f'{args.ticker}_improved_model.pkl'
+    model_name = f'{args.ticker}_market_simple_model.pkl'
     joblib.dump(model, model_name)
     print(f"\nModel saved as {model_name}")
 

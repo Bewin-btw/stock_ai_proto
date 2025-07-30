@@ -2,6 +2,7 @@ import argparse, joblib, datetime as dt
 from .ingest import get_price, get_news
 from .features import build_features
 from .simple_improved import add_simple_features
+from .fundamentals import add_fundamental_features
 
 def main():
     ap = argparse.ArgumentParser()
@@ -26,6 +27,9 @@ def main():
     
     # Add simple features
     feat = add_simple_features(feat)
+    
+    # Add fundamental features
+    feat = add_fundamental_features(feat, args.ticker)
     
     # Get latest data point
     feat = feat.iloc[-1:]

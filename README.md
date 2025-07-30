@@ -20,4 +20,10 @@ python -m src.predict --ticker AAPL
 | `predict.py` | load model & produce latest signal |
 | `risk.py` | simple Kelly sizing & VaR guard |
 
-Fill in API keys in `.env` or as env‑vars before running.
+
+## Advanced usage
+To train the enhanced model with market and fundamental data:
+```
+python -m src.super_train --ticker AAPL --start 2020-01-01 --end 2025-01-01
+python -m src.super_predict --ticker AAPL
+```

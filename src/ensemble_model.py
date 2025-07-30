@@ -22,7 +22,7 @@ class StockPredictor:
         self.feature_importance = {}
     
     def create_models(self):
-        """Создание различных моделей для ансамбля."""
+        """Create different models for the ensemble."""
         # LightGBM with different parameters
         self.models['lgbm_fast'] = lgb.LGBMClassifier(
             n_estimators=200, learning_rate=0.1, max_depth=5,
@@ -52,7 +52,7 @@ class StockPredictor:
         ])
     
     def train_models(self, X, y):
-        """Обучение всех моделей."""
+        """Train all models."""
         self.create_models()
         
         # Time series split for validation
@@ -84,7 +84,7 @@ class StockPredictor:
                 }).sort_values('importance', ascending=False)
     
     def create_ensemble(self, X, y):
-        """Создание ансамбля моделей."""
+        """Create an ensemble of models."""
         self.train_models(X, y)
         
         # Create ensemble
@@ -104,7 +104,7 @@ class StockPredictor:
         return self.ensemble
     
     def predict_with_confidence(self, X):
-        """Предсказание с уровнем уверенности."""
+        """Predict with a confidence estimate."""
         predictions = {}
         
         # Individual model predictions
@@ -130,17 +130,17 @@ def main():
     ap.add_argument('--label_strategy', choices=['balanced', 'adaptive', 'momentum'], default='balanced')
     args = ap.parse_args()
 
-    # Загрузка данных
+    # Load data
     price = get_price(args.ticker, args.start, args.end)
     
     if price.empty:
         print(f"Error: No data found for ticker '{args.ticker}'.")
         return
     
-    # Построение расширенных признаков
+    # Build extended features
     feat = build_enhanced_features(price, [])
     
-    # Создание меток в зависимости от стратегии
+    # Create labels depending on strategy
     if args.label_strategy == 'balanced':
         y = create_balanced_labels(price)
     elif args.label_strategy == 'adaptive':

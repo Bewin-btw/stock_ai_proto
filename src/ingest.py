@@ -2,17 +2,17 @@ import os
 import pandas as pd
 import yfinance as yf
 
+
 def get_price(ticker: str, start: str, end: str) -> pd.DataFrame:
-    """Получение данных о ценах акций через yfinance."""
+    """Fetch price data via yfinance."""
     return yf.download(ticker, start=start, end=end, auto_adjust=True, threads=False)
 
-# Получение новостей через yfinance.Ticker.news
-# Возвращает список словарей с ключами: 'title', 'publisher', 'link', 'providerPublishTime', 'type', 'content'
+
 def get_news(ticker: str, from_dt: str) -> list:
-    """Получение новостей через yfinance (если доступно)."""
+    """Return news items from yfinance if available."""
     try:
         news = yf.Ticker(ticker).news
-        # Фильтруем по дате
+        # Filter by date
         from_ts = pd.Timestamp(from_dt).timestamp()
         filtered = [n for n in news if n.get('providerPublishTime', 0) >= from_ts]
         return filtered

@@ -1,16 +1,16 @@
 import pandas as pd, pandas_ta as ta
 
 def add_technicals(df: pd.DataFrame) -> pd.DataFrame:
-    """Добавление технических индикаторов."""
+    """Add common technical indicators."""
     df = df.copy()
 
-    # Переход от MultiIndex к обычному DataFrame
+    # Switch from MultiIndex to a regular DataFrame
     # Get the first ticker from the MultiIndex columns
     if isinstance(df.columns, pd.MultiIndex):
         ticker = df.columns.get_level_values(1)[0]  # Get the first ticker
         df = df.xs(ticker, level='Ticker', axis=1)
 
-    # Добавляем технические индикаторы
+    # Add technical indicators
     # Moving averages
     df.ta.sma(length=20, append=True)
     df.ta.sma(length=50, append=True)

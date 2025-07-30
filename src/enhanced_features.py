@@ -3,7 +3,7 @@ import numpy as np
 from .technicals import add_technicals
 
 def add_market_regime_features(df):
-    """Добавление признаков рыночного режима."""
+    """Add market regime features."""
     if isinstance(df.columns, pd.MultiIndex):
         price_col = ('Close', df.columns.get_level_values(1)[0])
     else:
@@ -36,7 +36,7 @@ def add_market_regime_features(df):
     return df
 
 def add_time_features(df):
-    """Добавление временных признаков."""
+    """Add time-based features."""
     # Day of week
     df['day_of_week'] = df.index.dayofweek
     
@@ -55,7 +55,7 @@ def add_time_features(df):
     return df
 
 def add_lag_features(df, lags=[1, 2, 3, 5, 10]):
-    """Добавление лаговых признаков."""
+    """Add lag features."""
     if isinstance(df.columns, pd.MultiIndex):
         price_col = ('Close', df.columns.get_level_values(1)[0])
     else:
@@ -74,7 +74,7 @@ def add_lag_features(df, lags=[1, 2, 3, 5, 10]):
     return df
 
 def add_interaction_features(df):
-    """Добавление признаков взаимодействия."""
+    """Add interaction features."""
     # Price * Volume interaction
     if 'Volume' in df.columns:
         df['price_volume'] = df['Close'] * df['Volume']
@@ -90,7 +90,7 @@ def add_interaction_features(df):
     return df
 
 def build_enhanced_features(price_df, news_list=[]):
-    """Построение расширенных признаков."""
+    """Build extended feature set."""
     # Start with technical indicators
     feat = add_technicals(price_df)
     

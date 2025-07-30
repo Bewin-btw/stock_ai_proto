@@ -6,7 +6,7 @@ from .features import build_features
 import pandas as pd, numpy as np
 
 def label_next_day_return(df, threshold=0.01):
-    """Метод для метки следующего дня, если доходность больше заданного порога."""
+    """Return label 1 if next-day return exceeds threshold."""
     # Since we're using auto_adjust=True in yfinance, we can use 'Close'
     # The price data has MultiIndex columns, so we need to access it properly
     if isinstance(df.columns, pd.MultiIndex):
@@ -41,7 +41,7 @@ def main():
     ap.add_argument('--end', required=True)
     args = ap.parse_args()
 
-    # Загрузка только цен с помощью yfinance
+    # Download price data only using yfinance
     price = get_price(args.ticker, args.start, args.end)
     
     # Check if data was successfully downloaded
@@ -60,10 +60,10 @@ def main():
         print(f"Only {len(price)} data points found. Need at least 100 for training.")
         return
     
-    # Новости нам не нужны, так что передаем пустой список
+    # We don't need news here, so pass an empty list
     feat = build_features(price, [])
     
-    # Метка следующей доходности
+    # Next-day return label
     y = label_next_day_return(price)
     # Remove any non-feature columns if they exist, but don't assume specific columns
     columns_to_drop = []
@@ -77,7 +77,7 @@ def main():
     else:
         X = feat
     
-    X, y = X.iloc[:-1], y.iloc[:-1]  # выравнивание длинны данных
+    X, y = X.iloc[:-1], y.iloc[:-1]  # align lengths
     
     # Check if we have valid data after processing
     if X.empty or y.empty:
@@ -89,8 +89,8 @@ def main():
         print(f"Only {len(X)} data points after processing. Need at least 50 for training.")
         return
     
-    # Разделение на обучающий и тестовый наборы
-    train = X.index < '2024-01-01'  # просто делаем разбиение
+    # Split into train and test sets
+    train = X.index < '2024-01-01'  # simple split
     
     # Check if we have enough training data
     train_data = X[train]
@@ -110,10 +110,10 @@ def main():
     lgbm = lgb.LGBMClassifier(n_estimators=400, learning_rate=0.05)
     lgbm.fit(train_data, train_labels)
     
-    # Оценка модели
+    # Evaluate the model
     print('AUC test =', roc_auc_score(y[~train], lgbm.predict_proba(X[~train])[:,1]))
     
-    # Сохранение модели
+    # Save the model
     joblib.dump(lgbm, f'{args.ticker}_model.pkl')
 
 if __name__ == '__main__':

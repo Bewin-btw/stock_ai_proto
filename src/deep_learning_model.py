@@ -155,7 +155,6 @@ def main():
         print(f'Validation AUC = {auc:.4f}')
         print("\nValidation Report:")
         print(classification_report(y_true, pred_labels))
-
     model_path = f'{args.ticker}_deep_model.pt'
     torch.save(
         {

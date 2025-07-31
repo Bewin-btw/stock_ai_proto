@@ -44,3 +44,8 @@ Fill in API keys in `.env` or as env‑vars before running.
 - `layers`: number of stacked layers in LSTM or Transformer
 - `heads`: attention heads for the Transformer model
 - `device`: set to `cuda` for GPU training if available
+
+## Evaluation metrics
+
+Training scripts for all models print validation AUC and a classification
+report after fitting, so you can gauge performance immediately.

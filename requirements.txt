@@ -7,3 +7,4 @@ lightgbm>=4.4
 transformers>=4.52
 sentencepiece
 python-dotenv>=1.0
+torch>=2.1

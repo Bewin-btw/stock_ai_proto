@@ -3,7 +3,7 @@ import yfinance as yf
 import numpy as np
 
 def get_market_data(start_date, end_date):
-    """Получение рыночных данных для контекста."""
+    """Fetch market data for broader context."""
     # Major indices
     indices = {
         'SPY': 'S&P 500 ETF',
@@ -30,7 +30,7 @@ def get_market_data(start_date, end_date):
     return market_data
 
 def calculate_market_features(market_data, stock_data):
-    """Расчет рыночных признаков."""
+    """Calculate market features."""
     features = pd.DataFrame(index=stock_data.index)
     
     # SPY (S&P 500) features
@@ -81,7 +81,7 @@ def calculate_market_features(market_data, stock_data):
     return features
 
 def get_sector_data(ticker, start_date, end_date):
-    """Получение данных по сектору."""
+    """Fetch sector data."""
     # Sector ETFs mapping
     sector_etfs = {
         'XLK': 'Technology',
@@ -123,7 +123,7 @@ def get_sector_data(ticker, start_date, end_date):
         return None, None
 
 def calculate_sector_features(sector_data, stock_data):
-    """Расчет признаков сектора."""
+    """Calculate sector-related features."""
     features = pd.DataFrame(index=stock_data.index)
     
     if sector_data is not None:

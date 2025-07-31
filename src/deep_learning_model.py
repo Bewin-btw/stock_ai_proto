@@ -4,6 +4,7 @@ import pandas as pd
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
+from sklearn.metrics import roc_auc_score, classification_report
 
 from .ingest import get_price
 from .features import build_features
@@ -64,7 +65,13 @@ def main():
     ap.add_argument('--dropout', type=float, default=0.2)
     ap.add_argument('--patience', type=int, default=3,
                     help='Early stopping patience')
+    ap.add_argument('--device', default=None,
+                    help="Force training on 'cpu' or 'cuda'")
     args = ap.parse_args()
+
+    device = torch.device(
+        args.device if args.device else ('cuda' if torch.cuda.is_available() else 'cpu')
+    )
 
     price = get_price(args.ticker, args.start, args.end)
     if price.empty or len(price) < args.window + 10:
@@ -86,7 +93,7 @@ def main():
         hidden_dim=args.hidden,
         num_layers=args.layers,
         dropout=args.dropout,
-    )
+    ).to(device)
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
@@ -98,6 +105,8 @@ def main():
         model.train()
         losses = []
         for xb, yb in train_loader:
+            xb = xb.to(device)
+            yb = yb.to(device)
             optimizer.zero_grad()
             pred = model(xb)
             loss = criterion(pred, yb)
@@ -110,6 +119,8 @@ def main():
         val_losses = []
         with torch.no_grad():
             for xb, yb in val_loader:
+                xb = xb.to(device)
+                yb = yb.to(device)
                 pred = model(xb)
                 vloss = criterion(pred, yb)
                 val_losses.append(vloss.item())
@@ -132,6 +143,18 @@ def main():
     if best_state is not None:
         model.load_state_dict(best_state)
 
+    # Evaluate on the validation split
+    model.eval()
+    with torch.no_grad():
+        xb = X_tensor[split:].to(device)
+        y_true = y_tensor[split:].cpu().numpy().flatten()
+        preds = model(xb)
+        probs = torch.sigmoid(preds).cpu().numpy().flatten()
+        pred_labels = (probs > 0.5).astype(int)
+        auc = roc_auc_score(y_true, probs)
+        print(f'Validation AUC = {auc:.4f}')
+        print("\nValidation Report:")
+        print(classification_report(y_true, pred_labels))
     model_path = f'{args.ticker}_deep_model.pt'
     torch.save(
         {
@@ -141,6 +164,7 @@ def main():
             'num_layers': args.layers,
             'dropout': args.dropout,
             'window': args.window,
+            'device': device.type,
         },
         model_path,
     )

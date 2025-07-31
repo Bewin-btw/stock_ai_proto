@@ -4,6 +4,7 @@ import pandas as pd
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
+from sklearn.metrics import roc_auc_score, classification_report
 
 from .ingest import get_price
 from .features import build_features
@@ -133,6 +134,19 @@ def main():
 
     if best_state is not None:
         model.load_state_dict(best_state)
+
+    # Evaluate on the validation split
+    model.eval()
+    with torch.no_grad():
+        xb = X_tensor[split:]
+        y_true = y_tensor[split:].numpy().flatten()
+        preds = model(xb)
+        probs = torch.sigmoid(preds).numpy().flatten()
+        pred_labels = (probs > 0.5).astype(int)
+        auc = roc_auc_score(y_true, probs)
+        print(f'Validation AUC = {auc:.4f}')
+        print("\nValidation Report:")
+        print(classification_report(y_true, pred_labels))
 
     model_path = f'{args.ticker}_transformer_model.pt'
     torch.save(model.state_dict(), model_path)

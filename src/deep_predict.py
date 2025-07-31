@@ -16,11 +16,20 @@ def main():
                     help='Sequence window; if omitted uses value from model')
     ap.add_argument('--model', default=None,
                     help='Path to saved model (default <ticker>_deep_model.pt)')
+    ap.add_argument('--device', default=None,
+                    help="Force inference on 'cpu' or 'cuda'")
     args = ap.parse_args()
 
     model_path = args.model or f'{args.ticker}_deep_model.pt'
-    checkpoint = torch.load(model_path)
+    checkpoint = torch.load(model_path, map_location='cpu')
     chk_window = args.window or checkpoint.get('window', 30)
+    device = torch.device(
+        args.device if args.device else (
+            checkpoint.get('device') if checkpoint.get('device') else (
+                'cuda' if torch.cuda.is_available() else 'cpu'
+            )
+        )
+    )
 
     price = get_price(args.ticker, args.start, args.end)
     if price.empty or len(price) < chk_window + 1:
@@ -39,12 +48,13 @@ def main():
         hidden_dim=hidden,
         num_layers=layers,
         dropout=dropout,
-    )
+    ).to(device)
     state_dict = checkpoint.get('model_state_dict', checkpoint)
     model.load_state_dict(state_dict)
     model.eval()
 
     with torch.no_grad():
+        X_tensor = X_tensor.to(device)
         pred = model(X_tensor[-1:])
         prob = torch.sigmoid(pred).item()
 

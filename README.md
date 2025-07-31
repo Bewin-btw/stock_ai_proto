@@ -9,9 +9,11 @@ python -m src.train --ticker AAPL --start 2020-01-01 --end 2025-01-01
 python -m src.predict --ticker AAPL
 python -m src.deep_learning_model --ticker AAPL \
   --start 2020-01-01 --end 2024-12-31 \
-  --epochs 20 --hidden 128 --layers 3
-python -m src.deep_predict --ticker AAPL --start 2024-01-01 --end 2025-01-01
+  --epochs 20 --hidden 128 --layers 3 --device cuda
+python -m src.deep_predict --ticker AAPL --start 2024-01-01 --end 2025-01-01 \
+  --device cuda
 # the checkpoint stores all hyperparameters so prediction uses the same model
+
 python -m src.transformer_model --ticker AAPL \
   --start 2020-01-01 --end 2024-12-31 \
   --epochs 20 --heads 4 --layers 2
@@ -41,3 +43,9 @@ Fill in API keys in `.env` or as env‑vars before running.
 - `hidden`: hidden state size for the LSTM
 - `layers`: number of stacked layers in LSTM or Transformer
 - `heads`: attention heads for the Transformer model
+- `device`: set to `cuda` for GPU training if available
+
+## Evaluation metrics
+
+Training scripts for all models print validation AUC and a classification
+report after fitting, so you can gauge performance immediately.
